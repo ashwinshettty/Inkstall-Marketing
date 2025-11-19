@@ -13,7 +13,7 @@ const EnrollmentsCard = () => {
       <div className="flex flex-col justify-end h-full">
         <div className="flex justify-between items-center mb-2">
           <p className="text-white text-3xl font-bold">{enrollments}</p>
-          <div className="bg-green-500 bg-opacity-20 text-green-400 text-xs font-semibold px-2 py-1 rounded-full">
+          <div className="bg-green-500 bg-opacity-20 text-white text-xs font-semibold px-2 py-1 rounded-full">
             +{percentageChange}%
           </div>
         </div>

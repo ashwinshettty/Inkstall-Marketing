@@ -4,13 +4,13 @@ import Topbar from './components/ui/Topbar';
 import MainDashboardPage from './components/pages/dashboard/MainDashboardPage';
 import MainCampaignManagementPage from './components/pages/campaign_management/MainCampaignManagementPage';
 import CreativesLibrary from './components/pages/creatives_library/CreativesLibrary';
-import LeadManager from './components/pages/lead_manager/LeadManager';
+import MainLeadManagerPage from './components/pages/lead_manager/MainLeadManagerPage';
 import PerformanceAnalytics from './components/pages/performance_analytics/PerformanceAnalytics';
-import EmployeeMonitoring from './components/pages/employee_monitoring/EmployeeMonitoring';
-import TaskManager from './components/pages/task_manager/TaskManager';
-import InvoicesBilling from './components/pages/invoices_billing/InvoicesBilling';
+import MainEmployeeMonitoringPage from './components/pages/employee_monitoring/MainEmployeeMonitoringPage';
+import TaskManager from './components/pages/task_manager/MainTaskManagerPage';
+import InvoicesBilling from './components/pages/invoices_billing/MainInvoicesBillingPage';
 import ApprovalsCompliance from './components/pages/approvals_compliance/ApprovalsCompliance';
-import Settings from './components/pages/settings/Settings';
+import Settings from './components/pages/settings/MainSettingsPage';
 import './index.css'
 
 
@@ -54,11 +54,11 @@ const App = () => {
       case 'creatives-library':
         return <CreativesLibrary />;
       case 'lead-manager':
-        return <LeadManager />;
+        return <MainLeadManagerPage />;
       case 'performance-analytics':
         return <PerformanceAnalytics />;
       case 'employee-monitoring':
-        return <EmployeeMonitoring />;
+        return <MainEmployeeMonitoringPage />;
       case 'task-manager':
         return <TaskManager />;
       case 'invoices-billing':
