@@ -270,6 +270,7 @@ html {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
   background-color: #020617 !important;
+  font-size: 14px;
 }
 
 body {
