@@ -15,15 +15,19 @@ const DepartmentSnapshot = () => {
   ];
 
   return (
-    <MainCard className="h-80">
+    <MainCard>
       <div className="flex justify-between items-start mb-4">
         <div>
           <h2 className="text-white text-lg font-bold">Department Snapshot</h2>
           <p className="text-slate-400 text-xs mt-1">Team performance metrics</p>
         </div>
       </div>
-      <InnerCard className="h-full">
-        <div className="h-full flex flex-col justify-center px-4 space-y-4">
+      <InnerCard>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-2.5 h-2.5 rounded-full bg-transparent"></div>
+        </div>
+        
+        <div className="h-[180px] flex flex-col justify-center space-y-4">
           {data.map((item, index) => (
             <div key={index} className="flex flex-col space-y-2">
               <div className="flex justify-between items-center">
@@ -33,6 +37,10 @@ const DepartmentSnapshot = () => {
               <ProgressBar progress={item.progress} gradientColors={item.gradient} />
             </div>
           ))}
+        </div>
+
+        <div className="flex justify-around px-2 mt-2">
+          <div className="text-sm text-transparent font-medium">.</div>
         </div>
       </InnerCard>
     </MainCard>

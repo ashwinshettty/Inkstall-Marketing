@@ -8,7 +8,7 @@ const MainCard = ({ children, title, className = "" }) => {
       <div>
         <h2 className="text-slate-400 text-sm font-medium">{title}</h2>
       </div>
-      <div className="flex-1 flex flex-col justify-end">
+      <div className="flex-1 flex flex-col">
         {children}
       </div>
     </div>

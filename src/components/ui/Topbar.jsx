@@ -1,8 +1,10 @@
 import React from 'react';
+import { useAppContext } from '../../context/AppContext.jsx';
 import TopbarSearch from './TopbarSearch';
 import NewCampaign from './NewCampaign';
 
 const Topbar = ({ title }) => {
+  const { handleNavigation } = useAppContext();
   return (
     <div className="bg-slate-900 text-white p-2 flex items-center justify-between border-b border-slate-700">
       <div className="flex items-center">
@@ -14,7 +16,7 @@ const Topbar = ({ title }) => {
       <div className="flex items-center space-x-2">
         <TopbarSearch />
         <NewCampaign />
-        <div className="flex items-center">
+        <div className="flex items-center cursor-pointer" onClick={() => handleNavigation('profile')}>
           <div className="mr-2 text-right">
             <p className="font-semibold text-xs">Ashwin (Admin)</p>
             <p className="text-[10px] text-gray-400">Super Admin</p>

@@ -10,12 +10,11 @@ const Sidebar = ({ currentPage, onNavigation }) => {
     { name: 'Employee Monitoring', id: 'employee-monitoring' },
     { name: 'Task Manager', id: 'task-manager' },
     { name: 'Invoices & Billing', id: 'invoices-billing' },
-    { name: 'Approvals & Compliance', id: 'approvals-compliance' },
     { name: 'Settings', id: 'settings' },
   ];
 
   return (
-    <div className="bg-[#0F172A] text-white h-screen w-70 flex flex-col justify-between border-r border-slate-700">
+    <div className="bg-[#0F172A] text-white h-screen w-70 min-w-[250px] flex-shrink-0 flex flex-col justify-between border-r border-slate-700">
       <div>
         <div className="flex flex-col">
           <div className="p-4 flex items-center">
