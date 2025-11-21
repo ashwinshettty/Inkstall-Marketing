@@ -1,8 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MainCard from '../../ui/MainCard';
 import InnerCard from '../../ui/InnerCard';
+import CanvaScreen from './CanvaScreen';
 
 const CreativesLibrary = () => {
+  const [showCanvaEditor, setShowCanvaEditor] = useState(false);
+  
+  const handleOpenCanva = () => {
+    setShowCanvaEditor(true);
+  };
+  
+  const handleCloseCanva = () => {
+    setShowCanvaEditor(false);
+  };
+
+  // Function to handle saving the design (to be implemented)
+  const handleSaveDesign = () => {
+    // Here you would implement the save functionality
+    console.log('Saving design...');
+    // After saving, you might want to close the editor
+    setShowCanvaEditor(false);
+  };
   return (
     <div className="p-8">
       {/* Header Section */}
@@ -18,7 +36,10 @@ const CreativesLibrary = () => {
           >
             + Upload Creative
           </button>
-          <button className="px-4 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={handleOpenCanva}
+            className="px-4 py-2 rounded-md font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+          >
             + Create in Studio
           </button>
         </div>
@@ -96,7 +117,14 @@ const CreativesLibrary = () => {
             </div>
           </MainCard>
         </div>
-      {/* </InnerCard> */}
+      
+      {/* Canva Editor Modal */}
+      {showCanvaEditor && (
+        <CanvaScreen 
+          onClose={handleCloseCanva}
+          onSave={handleSaveDesign}
+        />
+      )}
     </div>
   );
 };
