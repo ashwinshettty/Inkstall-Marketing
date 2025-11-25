@@ -13,7 +13,7 @@ const api = axios.create({
  },
 });
 
-const SalesCard = ({ filters }) => {
+const SalesCard = ({ filters, refreshTrigger }) => {
  const [salesData, setSalesData] = useState([]);
  const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ const SalesCard = ({ filters }) => {
    };
 
    fetchSalesData();
- }, []);
+ }, [refreshTrigger]);
 
  // Filter sales data based on filters
  const filteredSales = salesData.filter(sale => {

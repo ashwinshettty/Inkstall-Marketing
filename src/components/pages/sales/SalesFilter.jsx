@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import MainCard from '../../ui/MainCard';
 import SalesCard from './SalesCard';
+import CreateEventModal from './CreateEventModal';
 import {
  FaClipboardList,
  FaCalendarAlt,
@@ -34,6 +35,8 @@ const SalesFilter = () => {
  const [searchQuery, setSearchQuery] = useState('');
  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
  const [allLeads, setAllLeads] = useState([]);
+ const [isModalOpen, setIsModalOpen] = useState(false);
+ const [refreshTrigger, setRefreshTrigger] = useState(0);
 
  // Fetch all leads to get counsellors
  useEffect(() => {
@@ -100,7 +103,10 @@ const SalesFilter = () => {
          <h2 className="text-2xl font-bold text-white">Sales Actions Calendar</h2>
          <p className="text-gray-400 mt-1">Manage and track all sales activities and events.</p>
        </div>
-       <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium">
+       <button 
+         onClick={() => setIsModalOpen(true)}
+         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
+       >
          + Create Event
        </button>
      </div>
@@ -245,10 +251,17 @@ const SalesFilter = () => {
              counsellor: selectedAgent,
              search: searchQuery
            }}
+           refreshTrigger={refreshTrigger}
          />
        )}
      </MainCard>
 
+     {/* Create Event Modal */}
+     <CreateEventModal
+       isOpen={isModalOpen}
+       onClose={() => setIsModalOpen(false)}
+       onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+     />
    </div>
  );
 };
