@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAppContext } from './context/AppContext.jsx';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Sidebar from './components/ui/Sidebar';
 import Topbar from './components/ui/Topbar';
 import MainDashboardPage from './components/pages/dashboard/MainDashboardPage';
@@ -10,6 +12,7 @@ import PerformanceAnalytics from './components/pages/performance_analytics/MainP
 import MainEmployeeMonitoringPage from './components/pages/employee_monitoring/MainEmployeeMonitoringPage';
 import TaskManager from './components/pages/task_manager/MainTaskManagerPage';
 import InvoicesBilling from './components/pages/invoices_billing/MainInvoicesBillingPage';
+import Sales from './components/pages/sales/MainSalesPage'
 import Settings from './components/pages/settings/MainSettingsPage';
 import LoginPage from './components/pages/login/LoginPage';
 import ProfilePage from './components/pages/profile/ProfilePage';
@@ -39,6 +42,8 @@ const App = () => {
         return 'Task Manager';
       case 'invoices-billing':
         return 'Invoices & Billing';
+      case 'sales':
+        return 'Sales';
       case 'settings':
         return 'Settings';
       case 'dashboard':
@@ -67,6 +72,8 @@ const App = () => {
         return <TaskManager />;
       case 'invoices-billing':
         return <InvoicesBilling />;
+      case 'sales':
+        return <Sales />;
       case 'settings':
         return <Settings />;
       case 'dashboard':
@@ -81,6 +88,17 @@ const App = () => {
 
   return (
     <div className="flex bg-slate-900 h-screen">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
       <Sidebar currentPage={currentPage} onNavigation={handleNavigation} />
       <div className="flex-grow flex flex-col">
         <Topbar title={getPageTitle()} />

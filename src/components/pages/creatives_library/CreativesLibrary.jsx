@@ -31,7 +31,7 @@ const CreativesLibrary = () => {
         </div>
         <div className="flex gap-3">
           <button 
-            className="px-4 py-2 rounded-md font-medium text-white transition-colors hover:opacity-90"
+            className="px-4 py-2 rounded-md font-medium text-black transition-colors hover:opacity-90"
             style={{ backgroundColor: '#FBBF24' }}
           >
             + Upload Creative

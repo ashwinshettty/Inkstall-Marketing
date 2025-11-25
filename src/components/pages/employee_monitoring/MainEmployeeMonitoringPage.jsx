@@ -48,8 +48,8 @@ const EmployeeMonitoring = () => {
     <div className="p-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-white">Employee Monitoring & KPIs</h2>
-        <p className="text-gray-400 mt-2">
+        <h2 className="text-2xl font-bold text-white">Employee Monitoring & KPIs</h2>
+        <p className="text-gray-400 mt-1">
           Track calls, leads, conversions and scorecards for each team member.
         </p>
       </div>

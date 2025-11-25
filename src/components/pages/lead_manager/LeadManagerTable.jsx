@@ -49,6 +49,7 @@ const LeadManagerTable = () => {
           Authorization: `Bearer ${authToken}`,
         },
       });
+      console.log('The data for leads is :',data)
 
       if (data.success) {
         const mappedLeads = data.students.map(student => ({
@@ -197,8 +198,8 @@ const LeadManagerTable = () => {
       {/* Header Section */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Lead Manager (CRM)</h2>
-          <p className="text-gray-400">Track every parent & student from first click to enrolment.</p>
+          <h2 className="text-2xl font-bold text-white">Lead Manager (CRM)</h2>
+          <p className="text-gray-400 mt-1">Track every parent & student from first click to enrolment.</p>
         </div>
         <div className="flex gap-3">
           <button className="px-4 py-2 rounded-lg font-medium text-white border border-gray-600 hover:bg-gray-700 transition-colors">

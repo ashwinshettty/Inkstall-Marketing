@@ -10,6 +10,7 @@ const Sidebar = ({ currentPage, onNavigation }) => {
     { name: 'Employee Monitoring', id: 'employee-monitoring' },
     { name: 'Task Manager', id: 'task-manager' },
     { name: 'Invoices & Billing', id: 'invoices-billing' },
+    { name: 'Sales', id: 'sales' },
     { name: 'Settings', id: 'settings' },
   ];
 

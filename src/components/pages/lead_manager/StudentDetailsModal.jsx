@@ -1,7 +1,277 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { format } from 'date-fns';
+import { FaPhone, FaCalendarAlt, FaUserTie, FaInfoCircle, FaExclamationTriangle, FaCheckCircle, FaTimes, FaEdit, FaTrash } from 'react-icons/fa';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Backend API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 const StudentDetailsModal = ({ isOpen, onClose, student }) => {
+  const [allLeads, setAllLeads] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedCounsellor, setSelectedCounsellor] = useState('');
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [isUpdateEnabled, setIsUpdateEnabled] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch all leads to get counsellors
+  useEffect(() => {
+    const fetchAllLeads = async () => {
+      try {
+        const authToken = localStorage.getItem('authToken');
+        let allFetchedLeads = [];
+        let currentPage = 1;
+        let hasMore = true;
+
+        // Fetch all pages
+        while (hasMore) {
+          const { data } = await api.get('/api/leads', {
+            params: { page: currentPage },
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+
+          if (data.success && data.students.length > 0) {
+            const mappedLeads = data.students.map(student => ({
+              counsellor: student.assignTo?.name || '-',
+            }));
+            allFetchedLeads = [...allFetchedLeads, ...mappedLeads];
+            
+            // Check if there are more pages
+            hasMore = currentPage < data.pagination.totalPages;
+            currentPage++;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        setAllLeads(allFetchedLeads);
+      } catch (err) {
+        console.error('Error fetching leads:', err);
+      }
+    };
+
+    if (isOpen) {
+      fetchAllLeads();
+    }
+  }, [isOpen]);
+
+  // Reset dropdowns when modal opens for a new student
+  useEffect(() => {
+    const checkSalesData = async () => {
+      if (isOpen && student) {
+        // First check localStorage
+        const savedFilters = localStorage.getItem(`student_filters_${student._id}`);
+        
+        if (savedFilters) {
+          try {
+            const filters = JSON.parse(savedFilters);
+            const authToken = localStorage.getItem('authToken');
+            
+            // Verify if the sales record still exists in DB by attempting a PATCH with current values
+            try {
+              const { data } = await api.patch(
+                `/api/sales/actions/${student._id}`,
+                {
+                  status: filters.status || 'pending',
+                  studentName: student.studentName || '',
+                  phone: student.contactInformation?.[0]?.number || '',
+                  priority: filters.priority || 'medium',
+                  counsellor: (filters.counsellor && filters.counsellor !== 'all') ? filters.counsellor : '',
+                  type: filters.event || 'all'
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${authToken}`,
+                  },
+                }
+              );
+
+              // If successful, the record exists - load the values from DB response
+              if (data.success && data.sales) {
+                setSelectedEvent(data.sales.type === 'all' ? '' : data.sales.type || '');
+                setSelectedPriority(data.sales.priority === 'medium' ? '' : data.sales.priority || '');
+                setSelectedStatus(data.sales.status === 'pending' ? '' : data.sales.status || '');
+                setSelectedCounsellor(data.sales.createdBy || '');
+                setTitle(data.sales.title || '');
+                setDate(data.sales.date ? format(new Date(data.sales.date), 'yyyy-MM-dd') : '');
+                setTime(data.sales.time || '');
+              }
+            } catch (err) {
+              // If 404, the record was deleted - reset to defaults
+              if (err.response?.status === 404) {
+                console.log('Sales record deleted, resetting to defaults');
+                setSelectedEvent('');
+                setSelectedPriority('');
+                setSelectedStatus('');
+                setSelectedCounsellor('');
+                setTitle('');
+                setDate('');
+                setTime('');
+                localStorage.removeItem(`student_filters_${student._id}`);
+              }
+            }
+          } catch (err) {
+            console.error('Error parsing saved filters:', err);
+            setSelectedEvent('');
+            setSelectedPriority('');
+            setSelectedStatus('');
+            setSelectedCounsellor('');
+            setTitle('');
+            setDate('');
+            setTime('');
+          }
+        } else {
+          // No saved data - reset to defaults
+          setSelectedEvent('');
+          setSelectedPriority('');
+          setSelectedStatus('');
+          setSelectedCounsellor('');
+          setTitle('');
+          setDate('');
+          setTime('');
+        }
+      }
+    };
+
+    checkSalesData();
+  }, [isOpen, student]);
+
+  // Enable update button when any dropdown changes
+  useEffect(() => {
+    const hasEventSelection = selectedEvent && selectedEvent !== '';
+    const hasPrioritySelection = selectedPriority && selectedPriority !== '';
+    const hasStatusSelection = selectedStatus && selectedStatus !== '';
+    const hasCounsellorSelection = selectedCounsellor && selectedCounsellor !== '' && selectedCounsellor !== 'all';
+    const hasTitle = title.trim() !== '';
+    const hasDate = date !== '';
+    const hasTime = time !== '';
+
+    if (hasEventSelection || hasPrioritySelection || hasStatusSelection || hasCounsellorSelection || hasTitle || hasDate || hasTime) {
+      setIsUpdateEnabled(true);
+    } else {
+      setIsUpdateEnabled(false);
+    }
+  }, [selectedEvent, selectedPriority, selectedStatus, selectedCounsellor, title, date, time]);
+
+  // Handle update button click
+  const handleUpdate = async () => {
+    if (!student || !student._id) return;
+
+    setIsSaving(true);
+    try {
+      const authToken = localStorage.getItem('authToken');
+
+      // Prepare update payload for PATCH request
+      const updatePayload = {
+        status: selectedStatus || 'pending',
+        studentName: student.studentName || '',
+        phone: student.contactInformation?.[0]?.number || '',
+        priority: selectedPriority || 'medium',
+        counsellor: (selectedCounsellor && selectedCounsellor !== 'all') ? selectedCounsellor : '',
+        type: selectedEvent || 'all',
+        title: title,
+        date: date || undefined,
+        time: time || undefined
+      };
+
+      // Try to update existing sales record using student._id
+      const { data } = await api.patch(
+        `/api/sales/actions/${student._id}`,
+        updatePayload,
+        {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      if (data.success) {
+        // Save the selected filter state to localStorage for this student
+        const filtersToSave = {
+          event: selectedEvent,
+          priority: selectedPriority,
+          status: selectedStatus,
+          counsellor: selectedCounsellor
+        };
+        localStorage.setItem(`student_filters_${student._id}`, JSON.stringify(filtersToSave));
+
+        toast.success('Sales action updated successfully!');
+      }
+    } catch (err) {
+      console.error('Error updating sales action:', err);
+      console.error('Error response:', err.response?.data);
+      
+      // If sales record doesn't exist (404), create a new one
+      if (err.response?.status === 404) {
+        try {
+          const createPayload = {
+            leadId: student._id,
+            studentId: student._id,
+            studentName: student.studentName || '',
+            contactNumber: student.contactInformation?.[0]?.number || '',
+            title: title,
+            type: selectedEvent || 'all',
+            priority: selectedPriority || 'medium',
+            status: selectedStatus || 'pending',
+            createdBy: selectedCounsellor && selectedCounsellor !== 'all' ? selectedCounsellor : '',
+            date: date || new Date(),
+            time: time || new Date().toLocaleTimeString()
+          };
+
+          const { data: createData } = await api.post(
+            `/api/sales`,
+            createPayload,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+              },
+            }
+          );
+
+          if (createData.success) {
+            const filtersToSave = {
+              event: selectedEvent,
+              priority: selectedPriority,
+              status: selectedStatus,
+              counsellor: selectedCounsellor
+            };
+            localStorage.setItem(`student_filters_${student._id}`, JSON.stringify(filtersToSave));
+            toast.success('Sales action created successfully!');
+          }
+        } catch (createErr) {
+          console.error('Error creating sales action:', createErr);
+          toast.error(`Failed to create sales action: ${createErr.response?.data?.message || createErr.message}`);
+        }
+      } else {
+        toast.error(`Failed to update sales action: ${err.response?.data?.message || err.message}`);
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!isOpen || !student) return null;
+
+  // Get unique counsellors for filter dropdown
+  const uniqueCounsellors = ['all', ...new Set(allLeads.map(lead => lead.counsellor).filter(c => c && c !== '' && c !== '-'))];
 
   const formatDate = (date) => {
     if (!date) return '-';
@@ -16,18 +286,122 @@ const StudentDetailsModal = ({ isOpen, onClose, student }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-gray-800 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-700" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold text-white">{student.studentName}</h2>
+        <div className="sticky top-0 bg-gray-800 border-b border-gray-700 px-6 py-4">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-white">{student.studentName}</h2>
+            </div>
+            
+            <button 
+              onClick={onClose}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+
+          {/* Dropdowns Row */}
+          <div className="flex flex-wrap gap-3 items-center mb-4">
+            {/* Event Dropdown */}
+            <div>
+              <select 
+                value={selectedEvent}
+                onChange={(e) => setSelectedEvent(e.target.value)}
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+              >
+                <option value="">Select Event</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="calls">Calls</option>
+                <option value="branch visit">Branch Visits</option>
+                <option value="meeting">Meetings</option>
+                <option value="demo lecture">Demo Lectures</option>
+                <option value="counselling">Counselling</option>
+                <option value="payments">Payments</option>
+                <option value="reviews">Reviews</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            {/* Priority Dropdown */}
+            <div>
+              <select 
+                value={selectedPriority}
+                onChange={(e) => setSelectedPriority(e.target.value)}
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+              >
+                <option value="">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+
+            {/* Status Dropdown */}
+            <div>
+              <select 
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            {/* Counsellor Dropdown */}
+            <div>
+              <select 
+                value={selectedCounsellor}
+                onChange={(e) => setSelectedCounsellor(e.target.value)}
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+              >
+                {uniqueCounsellors.map((counsellor, index) => (
+                  <option key={index} value={counsellor}>
+                    {counsellor === 'all' ? 'All Counsellors' : counsellor || 'Unassigned'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Update Button */}
+            <button
+              onClick={handleUpdate}
+              disabled={!isUpdateEnabled || isSaving}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                isUpdateEnabled && !isSaving
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
+                  : 'bg-gray-600 text-gray-400 cursor-not-allowed opacity-50'
+              }`}
+            >
+              {isSaving ? 'Saving...' : 'Update'}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-3 items-center mt-3">
+            <input 
+              type="text"
+              placeholder="Title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm w-full md:w-auto"
+            />
+            <input 
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+            />
+            <input 
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="bg-gray-700 text-white px-4 py-2 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-400 text-sm"
+            />
+          </div>
         </div>
 
         {/* Content */}
