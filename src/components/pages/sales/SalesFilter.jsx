@@ -3,6 +3,7 @@ import axios from 'axios';
 import MainCard from '../../ui/MainCard';
 import SalesCard from './SalesCard';
 import CreateEventModal from './CreateEventModal';
+import Calendar from '../calendar/Calendar';
 import {
  FaClipboardList,
  FaCalendarAlt,
@@ -242,7 +243,7 @@ const SalesFilter = () => {
 
 
        {/* Conditional Rendering based on View Mode */}
-       {viewMode === 'list' && (
+       {viewMode === 'list' ? (
          <SalesCard
            filters={{
              event: selectedEvent,
@@ -253,6 +254,10 @@ const SalesFilter = () => {
            }}
            refreshTrigger={refreshTrigger}
          />
+       ) : (
+         <div className="mt-6">
+           <Calendar />
+         </div>
        )}
      </MainCard>
 
