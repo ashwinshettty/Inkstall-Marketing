@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   addMonths,
   subMonths,
+  addDays,
   format,
   startOfMonth,
   endOfMonth,
@@ -9,14 +10,15 @@ import {
   endOfWeek,
   isSameMonth,
   isToday,
-  addDays,
   parseISO,
   isSameDay
-} from "date-fns";
-import axios from "axios";
+} from 'date-fns';
+import axios from 'axios';
+// import CalendarWeek from './CalendarWeek';
 
 const CalendarMonth = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState('month'); // 'month', 'week', or 'day'
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,7 +26,7 @@ const CalendarMonth = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/api/sales`);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/sales`);
         setEvents(response.data.sales || []);
       } catch (err) {
         console.error("Error fetching events:", err);
@@ -57,8 +59,20 @@ const CalendarMonth = () => {
     });
   };
 
-  const handlePrev = () => setCurrentDate(subMonths(currentDate, 1));
-  const handleNext = () => setCurrentDate(addMonths(currentDate, 1));
+  const navigate = (direction) => {
+    if (view === 'day') {
+      setCurrentDate(addDays(currentDate, direction === 'prev' ? -1 : 1));
+    } else if (view === 'week') {
+      setCurrentDate(addDays(currentDate, direction === 'prev' ? -7 : 7));
+    } else {
+      setCurrentDate(addMonths(currentDate, direction === 'prev' ? -1 : 1));
+    }
+  };
+
+  const handlePrev = () => navigate('prev');
+  const handleNext = () => navigate('next');
+  
+  const handleToday = () => setCurrentDate(new Date());
 
   const handleMonthSelect = (e) => {
     const newDate = new Date(currentDate);
@@ -77,23 +91,49 @@ const CalendarMonth = () => {
   return (
     <div className="w-full h-full bg-slate-950 rounded-lg p-6 shadow-lg">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
         <div className="flex items-center gap-2">
-          <button
-            onClick={handlePrev}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-md"
-          >
-            ‹ Prev
-          </button>
-          <button
-            onClick={handleNext}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-md"
-          >
-            Next ›
-          </button>
-          <h2 className="text-xl font-semibold text-white ml-3">
-            {months[currentDate.getMonth()]} {currentDate.getFullYear()}
+          <h2 className="text-xl font-semibold text-white">
+            {view === 'month' && `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`}
+            {view === 'week' && `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'MMM d')} - ${format(endOfWeek(currentDate, { weekStartsOn: 0 }), 'MMM d, yyyy')}`}
+            {view === 'day' && format(currentDate, 'EEEE, MMMM d, yyyy')}
           </h2>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md shadow-sm" role="group">
+            {/* <button
+              type="button"
+              onClick={() => setView('month')}
+              className={`px-4 py-2 text-sm font-medium rounded-r-lg ${view === 'month' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-gray-300 hover:bg-slate-700'}`}
+            >
+              Month
+            </button> */}
+          </div>
+          
+          <div className="flex items-center gap-2 ml-2">
+            <button
+              onClick={handlePrev}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-md"
+              title={`Previous ${view}`}
+            >
+              ‹
+            </button>
+            <button
+              onClick={handleToday}
+              className="px-3 py-2 text-sm bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-md"
+              title="Today"
+            >
+              Today
+            </button>
+            <button
+              onClick={handleNext}
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-gray-200 rounded-md"
+              title={`Next ${view}`}
+            >
+              ›
+            </button>
+          </div>
         </div>
         
         <select
@@ -116,57 +156,74 @@ const CalendarMonth = () => {
         ))}
       </div>
 
-      {/* Days Grid */}
-      <div className="grid grid-cols-7 gap-0 border-l border-t border-slate-800">
-        {calendarDays.map((day, index) => {
-          const isCurrentMonth = isSameMonth(day, monthStart);
-          const today = isToday(day);
-          const dayEvents = getEventsForDay(day);
+      {/* Calendar Content */}
+      {view === 'day' ? (
+        <CalendarDay 
+          currentDate={currentDate}
+          getEventsForDay={getEventsForDay}
+        />
+      ) : view === 'week' ? (
+        <CalendarWeek 
+          currentDate={currentDate}
+          getEventsForDay={getEventsForDay}
+        />
+      ) : (
+        <div className="grid grid-cols-7 gap-0 border-l border-t border-slate-800">
+          {calendarDays.map((day, index) => {
+            const isCurrentMonth = isSameMonth(day, monthStart);
+            const today = isToday(day);
+            const dayEvents = getEventsForDay(day);
 
-          return (
-            <div
-              key={index}
-              className={`h-32 border-r border-b border-slate-800 p-2 relative group ${
-                !isCurrentMonth ? 'bg-slate-900/50' : ''
-              }`}
-            >
+            return (
               <div
-                className={`absolute top-2 right-2 text-sm font-medium w-7 h-7 
-                  flex items-center justify-center rounded-full 
-                  ${
-                    today
-                      ? "bg-amber-500 text-white shadow"
-                      : isCurrentMonth
-                      ? "text-gray-200"
-                      : "text-gray-500"
-                  }
-                `}
+                key={index}
+                className={`h-32 border-r border-b border-slate-800 p-2 relative group ${
+                  !isCurrentMonth ? 'bg-slate-900/50' : ''
+                }`}
               >
-                {format(day, "d")}
-              </div>
+                <div
+                  className={`absolute top-2 right-2 text-sm font-medium w-7 h-7 
+                    flex items-center justify-center rounded-full 
+                    ${
+                      today
+                        ? "bg-amber-500 text-white shadow"
+                        : isCurrentMonth
+                        ? "text-gray-200"
+                        : "text-gray-500"
+                    }
+                  `}
+                >
+                  {format(day, "d")}
+                </div>
 
-              {/* Events */}
-              <div className="mt-8 space-y-1 overflow-y-auto max-h-20">
-                {dayEvents.map((event, idx) => (
-                  <div
-                    key={idx}
-                    className={`text-xs p-1 rounded truncate ${
-                      event.status === 'confirmed' ? 'bg-green-900/50 text-green-300' :
-                      event.status === 'pending' ? 'bg-yellow-900/50 text-yellow-300' :
-                      'bg-red-900/50 text-red-300'
-                    }`}
-                    title={`${event.studentName} - ${event.type} (${event.time})`}
-                  >
-                    {event.time} - {event.studentName}
+                {/* Events */}
+                <div className="mt-8 space-y-1">
+                {dayEvents.slice(0, 2).map((event, idx) => (
+                    <div
+                      key={idx}
+                      className={`text-xs p-1 rounded truncate ${
+                        event.status === 'confirmed' ? 'bg-green-900/50 text-green-300' :
+                        event.status === 'pending' ? 'bg-yellow-900/50 text-yellow-300' :
+                        'bg-red-900/50 text-red-300'
+                      }`}
+                      title={`${event.studentName} - ${event.type} (${event.time})`}
+                    >
+                      {event.time} - {event.studentName}
+                    </div>
+                  ))}
+                  {dayEvents.length > 2 && (
+                   <div className="text-xs text-blue-400 hover:text-blue-300 cursor-pointer pt-1">
+                    +{dayEvents.length - 2} more
                   </div>
-                ))}
-              </div>
+                )}
+                </div>
 
-              <div className="absolute inset-0 opacity-0 group-hover:bg-slate-800/20 group-hover:opacity-100 transition-all rounded-md pointer-events-none"></div>
-            </div>
-          );
-        })}
-      </div>
+                <div className="absolute inset-0 opacity-0 group-hover:bg-slate-800/20 group-hover:opacity-100 transition-all rounded-md pointer-events-none"></div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

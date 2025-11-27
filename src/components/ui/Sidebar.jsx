@@ -11,6 +11,7 @@ const Sidebar = ({ currentPage, onNavigation }) => {
     { name: 'Task Manager', id: 'task-manager' },
     { name: 'Invoices & Billing', id: 'invoices-billing' },
     { name: 'Sales', id: 'sales' },
+    { name: 'Sales Management', id: 'sales-management' },
     { name: 'Settings', id: 'settings' },
   ];
 

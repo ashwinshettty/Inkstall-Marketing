@@ -13,7 +13,7 @@ const api = axios.create({
  },
 });
 
-const SalesCard = ({ filters, refreshTrigger }) => {
+const SalesCard = ({ filters, refreshTrigger, onEdit }) => {
  const [salesData, setSalesData] = useState([]);
  const [loading, setLoading] = useState(true);
 
@@ -154,7 +154,7 @@ const SalesCard = ({ filters, refreshTrigger }) => {
          {/* Contact Number */}
          <div className="flex items-center gap-2 mb-2 text-gray-300 text-sm">
            <FaPhone className="text-gray-400" />
-           <span>{sale.contactNumber || sale.phone || '-'}</span>
+           <span>{sale.contacts?.[0]?.number || '-'}</span>
          </div>
 
 
@@ -169,7 +169,10 @@ const SalesCard = ({ filters, refreshTrigger }) => {
            <button className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-sm hover:bg-green-700 transition-colors font-medium">
              COMPLETE
            </button>
-           <button className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-sm hover:bg-blue-700 transition-colors font-medium">
+           <button 
+             onClick={() => onEdit(sale)}
+             className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-sm hover:bg-blue-700 transition-colors font-medium"
+           >
              EDIT
            </button>
          </div>

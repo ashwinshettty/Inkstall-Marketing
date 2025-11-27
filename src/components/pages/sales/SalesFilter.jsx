@@ -38,6 +38,7 @@ const SalesFilter = () => {
  const [allLeads, setAllLeads] = useState([]);
  const [isModalOpen, setIsModalOpen] = useState(false);
  const [refreshTrigger, setRefreshTrigger] = useState(0);
+ const [editingSale, setEditingSale] = useState(null);
 
  // Fetch all leads to get counsellors
  useEffect(() => {
@@ -105,7 +106,10 @@ const SalesFilter = () => {
          <p className="text-gray-400 mt-1">Manage and track all sales activities and events.</p>
        </div>
        <button 
-         onClick={() => setIsModalOpen(true)}
+         onClick={() => {
+           setEditingSale(null);
+           setIsModalOpen(true);
+         }}
          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium"
        >
          + Create Event
@@ -253,6 +257,10 @@ const SalesFilter = () => {
              search: searchQuery
            }}
            refreshTrigger={refreshTrigger}
+           onEdit={(sale) => {
+             setEditingSale(sale);
+             setIsModalOpen(true);
+           }}
          />
        ) : (
          <div className="mt-6">
@@ -264,8 +272,15 @@ const SalesFilter = () => {
      {/* Create Event Modal */}
      <CreateEventModal
        isOpen={isModalOpen}
-       onClose={() => setIsModalOpen(false)}
-       onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+       onClose={() => {
+         setIsModalOpen(false);
+         setEditingSale(null);
+       }}
+       onSuccess={() => {
+         setRefreshTrigger(prev => prev + 1);
+         setEditingSale(null);
+       }}
+       editData={editingSale}
      />
    </div>
  );
