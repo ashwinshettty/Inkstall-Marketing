@@ -12,11 +12,11 @@ const api = axios.create({
   },
 });
 
-const CreateEventModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
+const CreateEventModal = ({ isOpen, onClose, onSuccess, editData = null, initialDate = '' }) => {
   const [formData, setFormData] = useState({
     title: '',
     type: '',
-    date: '',
+    date: initialDate || '',
     time: '',
     priority: 'medium',
     status: 'pending',
@@ -56,7 +56,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
       fetchStudents();
       fetchCounsellors();
     }
-  }, [isOpen]);
+  }, [isOpen, editData, initialDate]);
 
   // Format time from any format to 'HH:MM' for input[type='time']
   const formatTimeForInput = (timeStr) => {
@@ -178,6 +178,23 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, editData = null }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Reset form when modal opens with initialDate if provided
+      setFormData(prev => ({
+        ...prev,
+        title: '',
+        type: '',
+        date: initialDate || '',
+        time: '',
+        priority: 'medium',
+        status: 'pending',
+        urgency: 'later',
+        studentName: '',
+      }));
+    }
+  }, [isOpen, initialDate]);
 
   const fetchCounsellors = async () => {
     try {
