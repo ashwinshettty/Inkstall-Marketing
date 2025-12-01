@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import LeadAssignment from "./LeadAssignment";
 import SalesFunnel from "./SalesFunnel";
-import SalesAnalytics from "./SalesAnalytics";
-import PerformanceCharts from "./PerformanceCharts";
-import BonusSystem from "./BonusSystem";
+import SalesAnalytics from "./sales_analytics/SalesAnalytics";
+import PerformanceCharts from "./performance_charts/PerformanceCharts";
+import BonusSystem from "./bonus_system/BonusSystem";
 import PerformanceMetrics from "./PerformanceMetrics";
 
 const MainSalesManagement = () => {

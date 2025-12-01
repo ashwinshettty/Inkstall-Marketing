@@ -43,16 +43,24 @@ const LeadManagerTable = () => {
     try {
       setLoading(true);
       const authToken = localStorage.getItem('authToken');
-      const { data } = await api.get('/api/leads', {
+      console.log(`Fetching page ${pageToFetch} with token:`, authToken ? 'Token exists' : 'No token');
+      
+      const response = await api.get('/api/leads', {
         params: { page: pageToFetch },
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
       });
-      console.log('The data for leads is :',data)
 
-      if (data.success) {
-        const mappedLeads = data.students.map(student => ({
+      console.log('API Response:', response);
+      console.log('Response data:', response.data);
+
+      if (!response.data) {
+        throw new Error('No data received from server');
+      }
+
+      if (response.data.success) {
+        const mappedLeads = response.data.students?.map(student => ({
           id: student._id,
           name: student.studentName || '-',
           board: student.board || '-',
@@ -64,17 +72,28 @@ const LeadManagerTable = () => {
           lastUpdate: formatDate(student.updatedAt || student.createdAt),
           phone: student.contactInformation?.[0]?.number || '',
           contactInformation: student.contactInformation || []
-        }));
+        })) || [];
+
         setAllLeads(prev => pageToFetch === 1 ? mappedLeads : [...prev, ...mappedLeads]);
-        setTotalLeads(data.pagination.total);
+        
+        // Safely access pagination with fallbacks
+        const total = response.data.pagination?.total || 0;
+        const totalPages = response.data.pagination?.totalPages || 1;
+        
+        setTotalLeads(total);
         setBackendPage(pageToFetch);
-        if (pageToFetch >= data.pagination.totalPages) {
-          setHasMoreBackendData(false);
-        }
+        setHasMoreBackendData(pageToFetch < totalPages);
+      } else {
+        console.error('API did not return success:', response.data);
+        setError(response.data.message || 'Failed to fetch leads');
       }
     } catch (err) {
-      console.error('Error fetching leads:', err);
-      setError('Failed to fetch leads');
+      console.error('Error in fetchLeadsFromBackend:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      setError(err.response?.data?.message || 'Failed to fetch leads. Please try again.');
     } finally {
       setLoading(false);
     }
