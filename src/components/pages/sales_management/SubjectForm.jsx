@@ -9,6 +9,7 @@ import {
   CalendarToday as CalendarIcon,
   MenuBook as BookOpenIcon,
 } from '@mui/icons-material';
+import MainCard from '../../ui/MainCard';
 
 const SubjectForm = () => {
   const [subjects, setSubjects] = useState([]);
@@ -123,7 +124,7 @@ const SubjectForm = () => {
   }
 
   return (
-    <div className="p-4 text-gray-800">
+    <div className="p-4 text-white">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Subject Forms ({filteredSubjects.length})</h2>
@@ -132,7 +133,7 @@ const SubjectForm = () => {
           <input
             type="text"
             placeholder="Search by name, phone, email, or notes"
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-85 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -142,7 +143,7 @@ const SubjectForm = () => {
       {/* Subject Forms List */}
       <div className="space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto pr-2">
         {filteredSubjects.map((subject) => (
-          <div key={subject._id} className="bg-white rounded-xl shadow-md p-6 relative">
+          <MainCard key={subject._id}>
             {/* Form Tag */}
             <span className="absolute top-4 right-4 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
               Subject Form
@@ -154,7 +155,7 @@ const SubjectForm = () => {
                 {subject.fullName || 
                 (subject.contactInformation?.[0]?.name ? `${subject.contactInformation[0].name}'s Form` : 'New Subject Form')}
               </h3>
-              <div className="flex items-center text-gray-600 text-sm mt-1 space-x-4">
+              <div className="flex items-center text-white text-sm mt-1 space-x-4">
                 {subject.grade && <span>Grade: {subject.grade}</span>}
                 {subject.grade && subject.board && <span>•</span>}
                 {subject.board && <span>Board: {subject.board}</span>}
@@ -165,22 +166,22 @@ const SubjectForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-start space-x-2">
                 <MapPinIcon className="h-5 w-5 text-gray-500 mt-0.5" />
-                <span className="text-gray-700">Address: {subject.address || 'N/A'}</span>
+                <span className="text-white">Address: {subject.address || 'N/A'}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <PhoneIcon className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">
+                <span className="text-white">
                   {formatContactDisplay(subject)}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">Form Submitted: {formatDate(subject.enquiryDate || subject.createdAt)}</span>
+                <span className="text-white">Form Submitted: {formatDate(subject.enquiryDate || subject.createdAt)}</span>
               </div>
               {subject.source && (
                 <div className="flex items-center space-x-2">
                   <BookOpenIcon className="h-5 w-5 text-gray-500" />
-                  <span className="text-gray-700">Source: {subject.source}</span>
+                  <span className="text-white">Source: {subject.source}</span>
                 </div>
               )}
             </div>
@@ -188,18 +189,18 @@ const SubjectForm = () => {
             {/* Subject Entries */}
             {subject.subjectEntries?.length > 0 && (
               <div className="mb-4">
-                <h4 className="font-medium text-gray-800 mb-2">Subject Details:</h4>
+                <h4 className="font-medium text-white mb-2">Subject Details:</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {subject.subjectEntries.map((entry, idx) => (
-                    <div key={idx} className="bg-gray-50 p-3 rounded-lg">
-                      <div className="font-medium text-gray-700">{entry.subjectName || 'Subject'}</div>
+                    <div key={idx} className="bg-gray-600 p-3 rounded-lg">
+                      <div className="font-medium text-white">{entry.subjectName || 'Subject'}</div>
                       {entry.score !== undefined && (
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-white">
                           Score: {entry.score} {entry.totalScore && `/ ${entry.totalScore}`}
                         </div>
                       )}
                       {entry.notes && (
-                        <div className="text-sm text-gray-500 mt-1">Notes: {entry.notes}</div>
+                        <div className="text-sm text-white mt-1">Notes: {entry.notes}</div>
                       )}
                     </div>
                   ))}
@@ -209,17 +210,17 @@ const SubjectForm = () => {
 
             {/* Additional Notes */}
             {subject.notes && (
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="bg-gray-600 p-3 rounded-lg">
+                <p className="text-sm text-white">
                   <span className="font-medium">Additional Notes:</span> {subject.notes}
                 </p>
               </div>
             )}
-          </div>
+          </MainCard>
         ))}
 
         {filteredSubjects.length === 0 && (
-          <div className="text-center py-10 text-gray-500">
+          <div className="text-center py-10 text-white">
             {searchQuery 
               ? 'No subject forms match your search.'
               : 'No subject forms available.'}

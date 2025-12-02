@@ -9,6 +9,7 @@ import {
   CalendarToday as CalendarIcon,
   MenuBook as BookOpenIcon,
 } from '@mui/icons-material';
+import MainCard from '../../ui/MainCard';
 
 const Enquiries = () => {
   const [enquiries, setEnquiries] = useState([]);
@@ -165,16 +166,16 @@ const Enquiries = () => {
   }
 
   return (
-    <div className="p-4 text-gray-800">
+    <div className="p-4 text-white">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="text-white flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Enquiries ({filteredEnquiries.length})</h2>
         <div className="relative">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
           <input
             type="text"
             placeholder="Search by name, phone, email, or notes"
-            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg w-85 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -184,7 +185,7 @@ const Enquiries = () => {
       {/* Enquiries List */}
       <div className="space-y-4 max-h-[calc(100vh-180px)] overflow-y-auto pr-2">
         {filteredEnquiries.map((enquiry) => (
-          <div key={enquiry.id} className="bg-white rounded-xl shadow-md p-6 relative">
+          <MainCard key={enquiry.id}>
             {/* Enquiry Tag */}
             <span className="absolute top-4 right-4 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
               {enquiry.source === 'enquiry-form' ? 'Enquiry' : 'Subject'}
@@ -196,7 +197,7 @@ const Enquiries = () => {
                 {enquiry.fullName || 
                 (enquiry.contactInformation?.[0]?.name ? `${enquiry.contactInformation[0].name}'s Enquiry` : 'New Enquiry')}
               </h3>
-              <div className="flex items-center text-gray-600 text-sm mt-1 space-x-4">
+              <div className="flex items-center text-white text-sm mt-1 space-x-4">
                 {enquiry.grade && <span>Grade: {enquiry.grade}</span>}
                 {enquiry.grade && enquiry.board && <span>•</span>}
                 {enquiry.board && <span>Board: {enquiry.board}</span>}
@@ -207,53 +208,53 @@ const Enquiries = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="flex items-start space-x-2">
                 <MapPinIcon className="h-5 w-5 text-gray-500 mt-0.5" />
-                <span className="text-gray-700">Address: {enquiry.address || 'N/A'}</span>
+                <span className="text-white">Address: {enquiry.address || 'N/A'}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <PhoneIcon className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">
+                <span className="text-white">
                   {formatContactDisplay(enquiry)}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <CalendarIcon className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">Enquiry Date: {formatDate(enquiry.enquiryDate || enquiry.createdAt)}</span>
+                <span className="text-white">Enquiry Date: {formatDate(enquiry.enquiryDate || enquiry.createdAt)}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <BookOpenIcon className="h-5 w-5 text-gray-500" />
-                <span className="text-gray-700">Source: {enquiry.source || 'N/A'}</span>
+                <span className="text-white">Source: {enquiry.source || 'N/A'}</span>
               </div>
             </div>
 
             {/* Subjects */}
             <div className="mb-4">
-              <h4 className="font-medium text-gray-800 mb-2">Subjects:</h4>
+              <h4 className="font-medium text-white mb-2">Subjects:</h4>
               <div className="flex flex-wrap gap-2">
                 {enquiry.subjects?.length > 0 ? (
                   enquiry.subjects.map((subject, idx) => (
-                    <span key={idx} className="bg-gray-100 text-gray-800 text-sm px-3 py-1 rounded-full">
+                    <span key={idx} className="bg-gray-100 text-white text-sm px-3 py-1 rounded-full">
                       {subject.name}: {subject.score}/{subject.total} ({subject.percentage}%)
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-500 text-sm">No subjects specified</span>
+                  <span className="text-white text-sm">No subjects specified</span>
                 )}
               </div>
             </div>
 
             {/* Help Needed */}
             {enquiry.helpNeeded && (
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-800">
+              <div className="bg-gray-600 p-3 rounded-lg">
+                <p className="text-sm text-white">
                   <span className="font-medium">Help Needed:</span> {enquiry.helpNeeded}
                 </p>
               </div>
             )}
-          </div>
+          </MainCard>
         ))}
 
         {filteredEnquiries.length === 0 && (
-          <div className="text-center py-10 text-gray-500">
+          <div className="text-center py-10 text-white">
             No enquiries found matching your search.
           </div>
         )}
