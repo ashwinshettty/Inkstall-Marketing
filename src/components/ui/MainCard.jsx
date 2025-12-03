@@ -3,7 +3,7 @@ import React from 'react';
 const MainCard = ({ children, title, className = "" }) => {
   return (
     <div 
-      className={`bg-[#1E293B] rounded-xl p-4 flex flex-col ${className}`}
+      className={`bg-[#1E293B] rounded-xl p-4 flex flex-col relative ${className}`}
     >
       <div>
         <h2 className="text-slate-400 text-sm font-medium">{title}</h2>
