@@ -18,6 +18,7 @@ const api = axios.create({
 const LeadManagerTable = () => {
   const [selectedBoard, setSelectedBoard] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedSaleStatus, setSelectedSaleStatus] = useState('all');
   const [selectedCounsellor, setSelectedCounsellor] = useState('all');
   const [searchName, setSearchName] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -29,12 +30,13 @@ const LeadManagerTable = () => {
   const [hasMoreBackendData, setHasMoreBackendData] = useState(true);
   const [frontendPage, setFrontendPage] = useState(1); // To track UI page
   const FRONTEND_PAGE_SIZE = 10;
-  const [totalLeads, setTotalLeads] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedStudentDetails, setSelectedStudentDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [statusDropdown, setStatusDropdown] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch leads from the backend
   const fetchLeadsFromBackend = async (pageToFetch) => {
@@ -60,27 +62,37 @@ const LeadManagerTable = () => {
       }
 
       if (response.data.success) {
-        const mappedLeads = response.data.students?.map(student => ({
+        // Ensure we have an array of students
+        const students = Array.isArray(response.data.students) ? response.data.students : [];
+        
+        const mappedLeads = students.map(student => ({
           id: student._id,
           name: student.studentName || '-',
           board: student.board || '-',
           grade: student.grade || '-',
           source: student.source || '-',
-          status: student.status === 'admissiondue' ? 'Admission Due' : '-',
+          status: student.status || '-',
+          displayStatus: student.status === 'admissiondue' ? 'Admission Due' : student.status === 'active' ? 'Active' : student.status || '-',
           salesStatus: student.salesStatus || '-',
           counsellor: student.assignTo?.name || '-',
-          lastUpdate: formatDate(student.updatedAt || student.createdAt),
           phone: student.contactInformation?.[0]?.number || '',
-          contactInformation: student.contactInformation || []
-        })) || [];
+          contactInformation: student.contactInformation || [],
+          subjects: student.subjects || []  // Ensure subjects is always an array
+        }));
 
-        setAllLeads(prev => pageToFetch === 1 ? mappedLeads : [...prev, ...mappedLeads]);
+        // Use functional update to prevent state batching issues
+        setAllLeads(prev => {
+          // If it's the first page, replace the data, otherwise append
+          const newLeads = pageToFetch === 1 ? mappedLeads : [...prev, ...mappedLeads];
+          // Remove duplicates based on student ID
+          const uniqueLeads = Array.from(new Map(newLeads.map(lead => [lead.id, lead])).values());
+          return uniqueLeads;
+        });
         
         // Safely access pagination with fallbacks
-        const total = response.data.pagination?.total || 0;
+        const total = response.data.total || 0;
         const totalPages = response.data.pagination?.totalPages || 1;
         
-        setTotalLeads(total);
         setBackendPage(pageToFetch);
         setHasMoreBackendData(pageToFetch < totalPages);
       } else {
@@ -140,10 +152,11 @@ const LeadManagerTable = () => {
   // Filter leads based on selected filters
   const filteredLeads = allLeads.filter(lead => {
     const boardMatch = selectedBoard === 'all' || lead.board.toLowerCase() === selectedBoard.toLowerCase();
-    const statusMatch = selectedStatus === 'all' || lead.salesStatus.toLowerCase() === selectedStatus.toLowerCase();
+    const statusMatch = selectedStatus === 'all' || lead.status.toLowerCase() === selectedStatus.toLowerCase();
+    const saleStatusMatch = selectedSaleStatus === 'all' || lead.salesStatus.toLowerCase() === selectedSaleStatus.toLowerCase();
     const counsellorMatch = selectedCounsellor === 'all' || lead.counsellor === selectedCounsellor;
     const nameMatch = searchName === '' || lead.name.toLowerCase().includes(searchName.toLowerCase());
-    return boardMatch && statusMatch && counsellorMatch && nameMatch;
+    return boardMatch && statusMatch && saleStatusMatch && counsellorMatch && nameMatch;
   });
 
   // Frontend Pagination calculations
@@ -155,7 +168,21 @@ const LeadManagerTable = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setFrontendPage(1);
-  }, [selectedBoard, selectedStatus, selectedCounsellor, searchName]);
+  }, [selectedBoard, selectedStatus, selectedSaleStatus, selectedCounsellor, searchName]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.status-dropdown')) {
+        setStatusDropdown(null);
+      }
+    };
+
+    if (statusDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [statusDropdown]);
 
   // Pagination handlers
   const goToPage = (pageNumber) => {
@@ -212,6 +239,80 @@ const LeadManagerTable = () => {
     setSelectedStudentDetails(null);
   };
 
+  const handleStatusChange = async (leadId, newStatus) => {
+    console.log('handleStatusChange called with:', { leadId, newStatus });
+    try {
+      setIsLoading(true);
+      console.log('Making API call to:', `/api/leads/students/${leadId}/salesStatus`);
+      const response = await api.patch(`/api/leads/students/${leadId}/salesStatus`, {
+        salesStatus: newStatus
+      }, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      console.log('API response:', response);
+
+      // Update the lead in the leads array
+      setAllLeads(leads => {
+        const updatedLeads = leads.map(lead =>
+          lead.id === leadId
+            ? { ...lead, salesStatus: newStatus }
+            : lead
+        );
+        console.log('Updated leads:', updatedLeads.find(lead => lead.id === leadId));
+        return updatedLeads;
+      });
+
+      setStatusDropdown(null); // Close the dropdown
+      console.log('Status change completed successfully');
+    } catch (error) {
+      console.error('Error updating status:', error);
+      console.error('Error details:', error.response?.data);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const statusOptions = [
+    {
+      value: 'New',
+      label: 'New',
+      labelColor: 'text-blue-500',
+      icon: <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+    },
+    {
+      value: 'Contacted',
+      label: 'Contacted',
+      labelColor: 'text-yellow-500',
+      icon: <svg className="w-4 h-4 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+    },
+    {
+      value: 'Qualified',
+      label: 'Qualified',
+      labelColor: 'text-purple-500',
+      icon: <svg className="w-4 h-4 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    },
+    {
+      value: 'Converted',
+      label: 'Converted',
+      labelColor: 'text-green-500',
+      icon: <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+    },
+    {
+      value: 'Lost',
+      label: 'Lost',
+      labelColor: 'text-red-500',
+      icon: <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+    },
+    {
+      value: 'Delegate',
+      label: 'Delegate',
+      labelColor: 'text-orange-500',
+      icon: <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+    }
+  ];
+
   return (
     <div>
       {/* Header Section */}
@@ -250,7 +351,7 @@ const LeadManagerTable = () => {
         {/* Filters Panel */}
         {showFilters && (
           <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Search Input */}
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Search Student</label>
@@ -278,7 +379,7 @@ const LeadManagerTable = () => {
                   <option value="ibdp">IBDP</option>
                 </select>
               </div>
-              
+
               {/* Status Filter */}
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Status</label>
@@ -288,9 +389,23 @@ const LeadManagerTable = () => {
                   className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:border-blue-400"
                 >
                   <option value="all">All</option>
+                  <option value="active">Active</option>
+                  <option value="admissiondue">Admission Due</option>
+                </select>
+              </div>
+              
+              {/* Sale Status Filter */}
+              <div>
+                <label className="text-xs text-gray-400 block mb-1">Sale Status</label>
+                <select 
+                  value={selectedSaleStatus}
+                  onChange={(e) => setSelectedSaleStatus(e.target.value)}
+                  className="w-full bg-gray-700 text-white px-3 py-2 rounded-md border border-gray-600 focus:outline-none focus:border-blue-400"
+                >
+                  <option value="all">All</option>
                   <option value="new">New</option>
                   <option value="contacted">Contacted</option>
-                  <option value="demo">Demo</option>
+                  <option value="qualified">Qualified</option>
                   <option value="converted">Converted</option>
                   <option value="lost">Lost</option>
                 </select>
@@ -316,15 +431,15 @@ const LeadManagerTable = () => {
         )}
 
         {/* Table Header */}
-        <div className="grid grid-cols-8 gap-4 px-4 py-3 border-b border-gray-700">
-          <div className="text-xs text-gray-400 font-medium">Name</div>
-          <div className="text-xs text-gray-400 font-medium">Board</div>
-          <div className="text-xs text-gray-400 font-medium">Grade</div>
-          <div className="text-xs text-gray-400 font-medium">Source</div>
-          <div className="text-xs text-gray-400 font-medium">Status</div>
-          <div className="text-xs text-gray-400 font-medium">Counsellor</div>
-          <div className="text-xs text-gray-400 font-medium">Last Update</div>
-          <div className="text-xs text-gray-400 font-medium">Actions</div>
+        <div className="grid grid-cols-[1.3fr_0.5fr_0.5fr_2.7fr_0.7fr_1fr_1fr_0.5fr] gap-2 pl-6 pr-4 py-3 border-b border-gray-700 items-start">
+          <div className="text-xs text-gray-400 font-medium truncate pl-2">Name</div>
+          <div className="text-xs text-gray-400 font-medium truncate pl-2">Board</div>
+          <div className="text-xs text-gray-400 font-medium pl-2">Grade</div>
+          <div className="text-xs text-gray-400 font-medium pl-2">Subjects</div>
+          <div className="text-xs text-gray-400 font-medium truncate pr-6">Source</div>
+          <div className="text-xs text-gray-400 font-medium pr-6">Status</div>
+          <div className="text-xs text-gray-400 font-medium truncate pr-6">Counsellor</div>
+          <div className="text-xs text-gray-400 font-medium pr-6">Actions</div>
         </div>
 
         {/* Table Body */}
@@ -340,37 +455,96 @@ const LeadManagerTable = () => {
               {currentLeads.map((lead, index) => (
                 <div 
                   key={lead.id || index} 
-                  className="grid grid-cols-8 gap-4 px-4 py-3 border-b border-gray-800 hover:bg-gray-800/50 transition-colors cursor-pointer" 
+                  className="grid grid-cols-[1.4fr_0.6fr_0.5fr_2.9fr_0.7fr_1fr_1fr_0.5fr] gap-2 px-4 py-3 border-b border-gray-800 hover:bg-gray-800/50 transition-colors cursor-pointer items-start" 
                   onClick={() => handleRowClick(lead)}
                 >
-                  <div className="text-white">{lead.name}</div>
-                  <div className="text-gray-300">{lead.board}</div>
+                  <div className="text-white truncate" title={lead.name}>{lead.name}</div>
+                  <div className="text-gray-300 truncate" title={lead.board}>{lead.board}</div>
                   <div className="text-gray-300">{lead.grade}</div>
-                  <div className="text-gray-300">{lead.source}</div>
+                  <div className="text-gray-300">
+                    {lead.subjects?.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {lead.subjects.map((subject, index) => {
+                          const subjectName = typeof subject === 'string' ? subject : (subject.name || subject.subjectName || '-');
+                          return (
+                            <span 
+                              key={index} 
+                              className="px-1.5 py-0.5 bg-indigo-900/30 text-indigo-300 rounded-full text-[11px] border border-indigo-700 whitespace-nowrap truncate max-w-[100px]"
+                              title={subjectName}
+                            >
+                              {subjectName}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </div>
+                  <div className="text-gray-300 truncate" title={lead.source}>{lead.source}</div>
                   <div className="text-gray-300">
                     <span className={`px-2 py-1 rounded-full text-xs ${
-                      lead.status === 'Admission Due' 
+                      lead.displayStatus === 'Admission Due' 
                         ? 'bg-yellow-900 text-yellow-300' 
+                        : lead.displayStatus === 'Active'
+                        ? 'bg-green-900 text-green-300'
                         : 'bg-gray-700 text-gray-300'
                     }`}>
-                      {lead.status}
+                      {lead.displayStatus}
                     </span>
                   </div>
-                  <div className="text-gray-300">{lead.counsellor}</div>
-                  <div className="text-gray-300">{lead.lastUpdate}</div>
+                  <div className="text-gray-300 truncate">{lead.counsellor}</div>
                   <div className="text-gray-300">
-                    <button 
-                      className="p-2 rounded-lg transition-colors cursor-pointer hover:bg-gray-700"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePhoneClick(lead);
-                      }}
-                      title="View contact information"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        className="p-2 rounded-lg transition-colors cursor-pointer hover:bg-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePhoneClick(lead);
+                        }}
+                        title="View contact information"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                      </button>
+                      <div className="relative">
+                        <button 
+                          className="p-2 rounded-lg transition-colors cursor-pointer hover:bg-gray-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setStatusDropdown(statusDropdown === lead.id ? null : lead.id);
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="5" cy="12" r="1"></circle>
+                            <circle cx="12" cy="12" r="1"></circle>
+                            <circle cx="19" cy="12" r="1"></circle>
+                          </svg>
+                        </button>
+                        
+                        {statusDropdown === lead.id && (
+                          <div className="status-dropdown absolute right-0 mt-1 w-56 bg-gray-800 rounded-lg shadow-xl z-10 border border-gray-700 overflow-hidden">
+                            <div className="py-2">
+                              {statusOptions.map((option) => (
+                                <button
+                                  key={option.value}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(lead.id, option.value);
+                                  }}
+                                  className={`w-full text-left px-4 py-2 text-md text-white hover:bg-gray-700 flex items-center transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  disabled={isLoading}
+                                >
+                                  {option.icon}
+                                  <span className={`font-medium ${option.labelColor}`}>{option.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -382,12 +556,12 @@ const LeadManagerTable = () => {
         {filteredLeads.length > 0 && (
           <div className="flex items-center justify-between px-4 py-4 border-t border-gray-700">
             <div className="text-sm text-gray-400">
-              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredLeads.length)} of {filteredLeads.length} leads (Total: {totalLeads})
+              Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredLeads.length)} of {filteredLeads.length} leads
             </div>
             
             <div className="flex items-center gap-2">
               <button
-                onClick={goToPreviousPage}
+              onClick={goToPreviousPage}
                 disabled={frontendPage === 1}
                 className="px-3 py-1 rounded-md bg-gray-700 text-white hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
