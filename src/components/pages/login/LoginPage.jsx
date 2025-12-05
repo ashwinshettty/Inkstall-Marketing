@@ -36,6 +36,7 @@ const LoginPage = ({ onLoginSuccess }) => {
 
       // Store user data as individual keys in localStorage
       localStorage.setItem('authToken', data.token);
+      localStorage.setItem('marketingId', data.user.id);
       localStorage.setItem('name', data.user.name);
       localStorage.setItem('role', data.user.roles[0]); // Store first role
       localStorage.setItem('profilePhotoUrl', data.user.profilePhotoUrl || data.user.localPhotoUrl || '');
