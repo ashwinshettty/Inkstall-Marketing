@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AppContext = createContext();
 
@@ -7,6 +8,7 @@ export const useAppContext = () => useContext(AppContext);
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [authToken, setAuthToken] = useState(null);
+  const navigate = useNavigate();
 
   // Restore user session on mount if token exists
   useEffect(() => {
@@ -30,6 +32,11 @@ export const AppProvider = ({ children }) => {
     localStorage.clear();
     setAuthToken(null);
     setUser(null);
+    navigate('/login');
+  };
+
+  const handleNavigation = (path) => {
+    navigate(`/${path}`);
   };
 
   const value = {
@@ -38,7 +45,9 @@ export const AppProvider = ({ children }) => {
     authToken,
     setAuthToken,
     logout,
+    handleNavigation,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
+

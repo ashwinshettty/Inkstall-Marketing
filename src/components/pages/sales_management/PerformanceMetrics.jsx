@@ -1,33 +1,112 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useAppContext } from '../../../context/AppContext';
 
 const PerformanceMetrics = () => {
+  const { authToken } = useAppContext();
   const [selectedCounsellor, setSelectedCounsellor] = useState("All Counsellors");
   const [selectedPeriod, setSelectedPeriod] = useState("All Time");
-  const counsellors = ["All Counsellors", "Counsellor 1", "Counsellor 2", "Counsellor 3"];
+  const [leadCounts, setLeadCounts] = useState({
+    total: 0,
+    new: 0,
+    contacted: 0,
+    qualified: 0,
+    converted: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [counsellors, setCounsellors] = useState([]);
+  const [counsellorsLoading, setCounsellorsLoading] = useState(true);
+
+  // Fetch counsellors from API
+  useEffect(() => {
+    const fetchCounsellors = async () => {
+      if (!authToken) return;
+      setCounsellorsLoading(true);
+
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/marketing/users`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        });
+
+        if (response.data.success) {
+          setCounsellors(response.data.users || []);
+        }
+      } catch (error) {
+        console.error('Error fetching counsellors:', error);
+      } finally {
+        setCounsellorsLoading(false);
+      }
+    };
+
+    fetchCounsellors();
+  }, [authToken]);
+
+  // Fetch all lead counts from API
+  useEffect(() => {
+    const fetchLeadCounts = async () => {
+      if (!authToken) return;
+      setLoading(true);
+
+      try {
+        // Fetch counts for each status
+        const statuses = ['new', 'contacted', 'qualified', 'converted'];
+        const requests = statuses.map(status => 
+          axios.get(`${import.meta.env.VITE_API_URL}/api/marketing/sales-management/status?status=${status}`, {
+            headers: { Authorization: `Bearer ${authToken}` }
+          })
+        );
+
+        const responses = await Promise.all(requests);
+        const [newCount, contactedCount, qualifiedCount, convertedCount] = responses.map(res => res.data.count || 0);
+        const totalCount = newCount + contactedCount + qualifiedCount + convertedCount;
+
+        setLeadCounts({
+          total: totalCount,
+          new: newCount,
+          contacted: contactedCount,
+          qualified: qualifiedCount,
+          converted: convertedCount
+        });
+
+      } catch (error) {
+        console.error('Error fetching lead counts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLeadCounts();
+  }, [authToken]);
+
+  // Calculate conversion rate
+  const conversionRate = leadCounts.converted > 0 
+    ? ((leadCounts.total / leadCounts.converted)*100).toFixed(1) 
+    : 0;
+
   const leads = [
     {
       title: "Total Leads",
-      value: "967",
+      value: loading ? "..." : leadCounts.total.toString(),
       description: "Total leads in database"
     },
     {
-      title: "New Leads Today",
-      value: "2",
-      description: "Added in last 24 hours"
+      title: "New Leads",
+      value: loading ? "..." : leadCounts.new.toString(),
+      description: "Leads with new status"
     },
     {
       title: "Qualified Leads",
-      value: "5",
+      value: loading ? "..." : leadCounts.qualified.toString(),
       description: "Students with qualified status"
     },
     {
       title: "Contacted Leads",
-      value: "86",
+      value: loading ? "..." : leadCounts.contacted.toString(),
       description: "Students with contacted status"
     },
     {
       title: "Conversion Rate",
-      value: "9.6%",
+      value: loading ? "..." : `${conversionRate}%`,
       description: "Total Students / Converted Students"
     }
   ];
@@ -95,10 +174,12 @@ const PerformanceMetrics = () => {
             value={selectedCounsellor}
             onChange={(e) => setSelectedCounsellor(e.target.value)}
             className="w-full bg-gray-800 border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={counsellorsLoading}
           >
+            <option value="All Counsellors">All Counsellors</option>
             {counsellors.map((counsellor) => (
-              <option key={counsellor} value={counsellor}>
-                {counsellor}
+              <option key={counsellor._id} value={counsellor._id}>
+                {counsellor.name}
               </option>
             ))}
           </select>
